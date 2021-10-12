@@ -19,10 +19,10 @@ func info() BattlesnakeInfoResponse {
 	log.Println("INFO")
 	return BattlesnakeInfoResponse{
 		APIVersion: "1",
-		Author:     "",        // TODO: Your Battlesnake username
-		Color:      "#888888", // TODO: Personalize
-		Head:       "default", // TODO: Personalize
-		Tail:       "default", // TODO: Personalize
+		Author:     "schiob",
+		Color:      "#3875c9",
+		Head:       "default",
+		Tail:       "default",
 	}
 }
 
@@ -49,37 +49,37 @@ func move(state GameState) BattlesnakeMoveResponse {
 		"left":  true,
 		"right": true,
 	}
-
-	// Step 0: Don't let your Battlesnake move back in on it's own neck
 	myHead := state.You.Body[0] // Coordinates of your head
-	myNeck := state.You.Body[1] // Coordinates of body piece directly behind your head (your "neck")
-	if myNeck.X < myHead.X {
-		possibleMoves["left"] = false
-	} else if myNeck.X > myHead.X {
+
+	boardWidth := state.Board.Width
+	if myHead.X == boardWidth-1 {
 		possibleMoves["right"] = false
-	} else if myNeck.Y < myHead.Y {
-		possibleMoves["down"] = false
-	} else if myNeck.Y > myHead.Y {
-		possibleMoves["up"] = false
+	} else if myHead.X == 0 {
+		possibleMoves["left"] = false
 	}
 
-	// TODO: Step 1 - Don't hit walls.
-	// Use information in GameState to prevent your Battlesnake from moving beyond the boundaries of the board.
-	// boardWidth := state.Board.Width
-	// boardHeight := state.Board.Height
+	boardHeight := state.Board.Height
+	if myHead.Y == boardHeight-1 {
+		possibleMoves["up"] = false
+	} else if myHead.Y == 0 {
+		possibleMoves["down"] = false
+	}
 
-	// TODO: Step 2 - Don't hit yourself.
-	// Use information in GameState to prevent your Battlesnake from colliding with itself.
-	// mybody := state.You.Body
+	for _, snake := range state.Board.Snakes {
+		for _, part := range snake.Body {
+			if isLeft(part, myHead) {
+				possibleMoves["left"] = false
+			} else if isRight(part, myHead) {
+				possibleMoves["right"] = false
+			} else if isDown(part, myHead) {
+				possibleMoves["down"] = false
+			} else if isUp(part, myHead) {
+				possibleMoves["up"] = false
+			}
+		}
+	}
 
-	// TODO: Step 3 - Don't collide with others.
-	// Use information in GameState to prevent your Battlesnake from colliding with others.
-
-	// TODO: Step 4 - Find food.
-	// Use information in GameState to seek out and find food.
-
-	// Finally, choose a move from the available safe moves.
-	// TODO: Step 5 - Select a move to make based on strategy, rather than random.
+	// Choose a move from the available safe moves.
 	var nextMove string
 
 	safeMoves := []string{}
@@ -96,7 +96,37 @@ func move(state GameState) BattlesnakeMoveResponse {
 		nextMove = safeMoves[rand.Intn(len(safeMoves))]
 		log.Printf("%s MOVE %d: %s\n", state.Game.ID, state.Turn, nextMove)
 	}
+
+	if len(state.Board.Food) != 0 {
+		food := state.Board.Food[0]
+		if myHead.X < food.X && possibleMoves["right"] {
+			nextMove = "right"
+		} else if myHead.X > food.X && possibleMoves["left"] {
+			nextMove = "left"
+		} else if myHead.Y < food.Y && possibleMoves["up"] {
+			nextMove = "up"
+		} else if myHead.Y > food.Y && possibleMoves["down"] {
+			nextMove = "down"
+		}
+	}
+
 	return BattlesnakeMoveResponse{
 		Move: nextMove,
 	}
+}
+
+func isLeft(target Coord, myHead Coord) bool {
+	return target.X == myHead.X-1 && target.Y == myHead.Y
+}
+
+func isRight(target Coord, myHead Coord) bool {
+	return target.X == myHead.X+1 && target.Y == myHead.Y
+}
+
+func isDown(target Coord, myHead Coord) bool {
+	return target.Y == myHead.Y-1 && target.X == myHead.X
+}
+
+func isUp(target Coord, myHead Coord) bool {
+	return target.Y == myHead.Y+1 && target.X == myHead.X
 }
