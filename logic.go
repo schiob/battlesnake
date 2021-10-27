@@ -6,6 +6,7 @@ package main
 // from the list of possible moves!
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 )
@@ -43,6 +44,18 @@ func end(state GameState) {
 // where to move -- valid moves are "up", "down", "left", or "right".
 // We've provided some code and comments to get you started.
 func move(state GameState) BattlesnakeMoveResponse {
+	// Calc Flodfill
+	flodFillArr := initFlodfill(state)
+	flodSpaceCount := make([]int, state.Board.Height*state.Board.Width)
+	for y := 0; y < len(flodFillArr); y++ {
+		for x := 0; x < len(flodFillArr); x++ {
+			if flodFillArr[y][x] > 0 {
+				color := flodFillArr[y][x]
+				flodSpaceCount[color]++
+			}
+		}
+	}
+
 	possibleMoves := map[string]bool{
 		"up":    true,
 		"down":  true,
@@ -85,7 +98,29 @@ func move(state GameState) BattlesnakeMoveResponse {
 	safeMoves := []string{}
 	for move, isSafe := range possibleMoves {
 		if isSafe {
-			safeMoves = append(safeMoves, move)
+			// Check no space
+			sizeSpace := 0
+			switch move {
+			case "left":
+				colorLeft := flodFillArr[myHead.Y][myHead.X-1]
+				sizeSpace = flodSpaceCount[colorLeft]
+			case "right":
+				colorRight := flodFillArr[myHead.Y][myHead.X+1]
+				sizeSpace = flodSpaceCount[colorRight]
+			case "down":
+				colorDown := flodFillArr[myHead.Y-1][myHead.X]
+				sizeSpace = flodSpaceCount[colorDown]
+			case "up":
+				colorUp := flodFillArr[myHead.Y+1][myHead.X]
+				sizeSpace = flodSpaceCount[colorUp]
+			}
+			if sizeSpace < int(state.You.Length) {
+				// no safe
+				fmt.Printf("no safe to move %s, space %d snake size %d\n", move, sizeSpace, int(state.You.Length))
+				possibleMoves[move] = false
+			} else {
+				safeMoves = append(safeMoves, move)
+			}
 		}
 	}
 
